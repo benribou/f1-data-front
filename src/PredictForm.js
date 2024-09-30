@@ -1,5 +1,5 @@
 // PredictForm.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 
 // Styled Components
@@ -10,7 +10,7 @@ const FormContainer = styled.div`
   border-radius: 10px;
   width: 400px;
   margin: 50px auto;
-  box-shadow: 0px 0px 10px rgba(255, 0, 0, 0.5);
+  box-shadow: 0px 0px 20px rgba(255, 0, 0, 0.5);
   text-align: center;
 `;
 
@@ -71,13 +71,33 @@ const Button = styled.button`
 
 // Composant principal
 const PredictForm = ({ onSubmit }) => {
+  // États pour les champs de formulaire
   const [driver, setDriver] = useState('');
   const [circuit, setCircuit] = useState('');
   const [startingPosition, setStartingPosition] = useState('');
+  const [constructor, setConstructor] = useState('');
+  const [constructors, setConstructors] = useState([]);
+
+  // Récupérer la liste des constructeurs via l'API
+  useEffect(() => {
+    fetch('http://localhost:8000/constructors/')
+      .then((response) => response.json())
+      .then((data) => {
+        console.log('Données récupérées :', data);  // Vérifiez que "constructors" est bien présent
+        if (data && Array.isArray(data.constructors)) {
+          setConstructors(data.constructors);  // Utilisez data.constructors
+        } else {
+          console.error('Format de données inattendu :', data);
+        }
+      })
+      .catch((error) => {
+        console.error('Erreur lors de la récupération des constructeurs :', error);
+      });
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit({ driver, circuit, startingPosition });
+    onSubmit({ driver, circuit, startingPosition, constructor });
   };
 
   return (
@@ -86,21 +106,20 @@ const PredictForm = ({ onSubmit }) => {
       <Logo src="f1_logo2.png" alt="F1 Logo" />
       <Title>F1 Position Prediction</Title>
       <form onSubmit={handleSubmit}>
-        <Label htmlFor="driver">Driver</Label>
-        <Select id="driver" value={driver} onChange={(e) => setDriver(e.target.value)}>
-          <option value="">Select Driver</option>
-          <option value="Hamilton">Lewis Hamilton</option>
-          <option value="Verstappen">Max Verstappen</option>
-          <option value="Leclerc">Charles Leclerc</option>
-          {/* Ajoutez plus de pilotes ici */}
+              {/* Ajouter le sélecteur pour le constructeur */}
+              <Label htmlFor="constructor">Constructor</Label>
+        <Select id="constructor" value={constructor} onChange={(e) => setConstructor(e.target.value)}>
+          <option value="">Select Constructor</option>
+          {constructors.map((constructor) => (
+            <option key={constructor.id} value={constructor.name}>
+              {constructor.name}
+            </option>
+          ))}
         </Select>
 
         <Label htmlFor="circuit">Circuit</Label>
         <Select id="circuit" value={circuit} onChange={(e) => setCircuit(e.target.value)}>
           <option value="">Select Circuit</option>
-          <option value="Monaco">Monaco</option>
-          <option value="Silverstone">Silverstone</option>
-          <option value="Spa">Spa</option>
           {/* Ajoutez plus de circuits ici */}
         </Select>
 
@@ -111,6 +130,8 @@ const PredictForm = ({ onSubmit }) => {
           value={startingPosition}
           onChange={(e) => setStartingPosition(e.target.value)}
           placeholder="Enter starting position (1-20)"
+          min="1"  // Limite minimum
+          max="20" // Limite maximum
         />
 
         <Button type="submit">Predict Position</Button>
